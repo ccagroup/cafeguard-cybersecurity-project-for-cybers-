@@ -1,0 +1,143 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider          = "mysql"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  ATTENDANT
+}
+
+enum AlertSeverity {
+  DANGER
+  WARNING
+  SUCCESS
+}
+
+enum IncidentType {
+  UNAUTHORISED_ACCESS
+  PASSWORD_CHANGED
+  OTHER
+}
+
+enum IncidentSeverity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum IncidentStatus {
+  OPEN
+  INVESTIGATING
+  RESOLVED
+}
+
+model User {
+  id             String    @id @default(uuid())
+  name           String    @db.VarChar(100)
+  email          String    @unique @db.VarChar(255)
+  passwordHash   String    @db.VarChar(255)
+  role           Role
+  failedAttempts Int       @default(0)
+  lockedUntil    DateTime?
+  createdAt      DateTime  @default(now())
+
+  authSessions       AuthSession[]
+  startedSessions    CustomerSession[] @relation("StartedBy")
+  endedSessions      CustomerSession[] @relation("EndedBy")
+  incidents          Incident[]
+  acknowledgedAlerts Alert[]
+  auditEntries       AuditLog[]
+}
+
+model AuthSession {
+  id        String   @id @default(uuid())
+  tokenHash String   @unique @db.VarChar(64)
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Station {
+  id    String @id @default(uuid())
+  label String @unique @db.VarChar(50)
+
+  sessions  CustomerSession[]
+  alerts    Alert[]
+  incidents Incident[]
+}
+
+model CustomerSession {
+  id             String    @id @default(uuid())
+  stationId      String
+  customerName   String    @db.VarChar(100)
+  startedAt      DateTime  @default(now())
+  startedById    String
+  endedAt        DateTime?
+  endedById      String?
+  endedProperly  Boolean   @default(false)
+  openStationKey String?   @unique
+
+  station   Station @relation(fields: [stationId], references: [id])
+  startedBy User    @relation("StartedBy", fields: [startedById], references: [id])
+  endedBy   User?   @relation("EndedBy", fields: [endedById], references: [id])
+
+  @@index([stationId, startedAt])
+}
+
+model Alert {
+  id               String        @id @default(uuid())
+  severity         AlertSeverity
+  message          String        @db.VarChar(500)
+  stationId        String
+  createdAt        DateTime      @default(now())
+  acknowledgedAt   DateTime?
+  acknowledgedById String?
+
+  station        Station @relation(fields: [stationId], references: [id])
+  acknowledgedBy User?   @relation(fields: [acknowledgedById], references: [id])
+
+  @@index([createdAt])
+}
+
+model Incident {
+  id           String           @id @default(uuid())
+  stationId    String
+  type         IncidentType
+  description  String           @db.Text
+  severity     IncidentSeverity
+  status       IncidentStatus   @default(OPEN)
+  notes        String?          @db.Text
+  reportedById String
+  createdAt    DateTime         @default(now())
+
+  station    Station @relation(fields: [stationId], references: [id])
+  reportedBy User    @relation(fields: [reportedById], references: [id])
+
+  @@index([createdAt])
+}
+
+model AuditLog {
+  id        BigInt   @id @default(autoincrement())
+  actorId   String?
+  action    String   @db.VarChar(50)
+  target    String?  @db.VarChar(100)
+  stationId String?
+  detail    String?  @db.VarChar(500)
+  ip        String?  @db.VarChar(45)
+  createdAt DateTime @default(now()) @db.DateTime(3)
+
+  actor User? @relation(fields: [actorId], references: [id])
+
+  @@index([createdAt])
+  @@index([stationId, createdAt])
+}
