@@ -7,6 +7,9 @@ import { config } from "./config";
 import { apiLimiter } from "./middleware/limits";
 import { requireAuth } from "./middleware/auth";
 import { authRouter } from "./routes/auth";
+import { attendantsRouter } from "./routes/attendants";
+import { stationsRouter } from "./routes/stations";
+import { sessionsRouter } from "./routes/sessions";
 
 export function createApp() {
   const app = express();
@@ -26,7 +29,9 @@ export function createApp() {
 
   // Everything below this line requires sign-in.
   app.use("/api", requireAuth);
-  // Data routes are added here in later steps.
+  app.use("/api/attendants", attendantsRouter);
+  app.use("/api/stations", stationsRouter);
+  app.use("/api/sessions", sessionsRouter);
 
   app.use("/api", (_req, res) => {
     res.status(404).json({ error: "Not found" });
