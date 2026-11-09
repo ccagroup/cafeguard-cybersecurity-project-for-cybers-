@@ -4,11 +4,13 @@
   "description": "",
     "main": "dist/index.js",
    "scripts": {
+    "seed": "tsx prisma/seed.ts",
      "dev": "tsx watch src/index.ts",
      "build": "tsc",
      "start": "node dist/index.js",
      "test": "vitest run",
-     "typecheck": "tsc --noEmit"
+     "typecheck": "tsc --noEmit && tsc --noEmit -p prisma"
+    
    },
   "keywords": [],
   "author": "",
