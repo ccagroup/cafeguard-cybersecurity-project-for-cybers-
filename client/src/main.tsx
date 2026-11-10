@@ -8,8 +8,10 @@ import "@fontsource/ibm-plex-mono/400.css";
 import "./styles/tokens.css";
 import "./styles/base.css";
 import "./styles/layout.css";
+import "./styles/components.css";
 import { AuthProvider } from "./auth/AuthContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { ToastProvider } from "./components/Toast";
 import { App } from "./App";
 
 createRoot(document.getElementById("root")!).render(
@@ -17,7 +19,9 @@ createRoot(document.getElementById("root")!).render(
     <ErrorBoundary>
       <BrowserRouter>
         <AuthProvider>
-          <App />
+          <ToastProvider>
+            <App />
+          </ToastProvider>
         </AuthProvider>
       </BrowserRouter>
     </ErrorBoundary>

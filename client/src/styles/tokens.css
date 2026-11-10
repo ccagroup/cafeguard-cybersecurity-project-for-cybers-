@@ -32,6 +32,8 @@
   --space-7: 3rem;
   --space-8: 4.5rem;
 
+  --overlay: rgb(25 35 31 / 0.45);
+
   --radius: 6px;
   --radius-lg: 10px;
   --sidebar-w: 15rem;

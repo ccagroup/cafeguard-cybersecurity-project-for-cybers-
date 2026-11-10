@@ -1,10 +1,12 @@
 import { Route, Routes } from "react-router-dom";
 import { AppShell } from "./components/AppShell";
 import { RequireAuth } from "./components/RequireAuth";
+import { Dashboard } from "./pages/Dashboard";
 import { Landing } from "./pages/Landing";
 import { Login } from "./pages/Login";
 import { NotFound } from "./pages/NotFound";
 import { Placeholder } from "./pages/Placeholder";
+import { Stations } from "./pages/Stations";
 
 export function App() {
   return (
@@ -19,8 +21,8 @@ export function App() {
           </RequireAuth>
         }
       >
-        <Route index element={<Placeholder title="Dashboard" />} />
-        <Route path="stations" element={<Placeholder title="Stations" />} />
+        <Route index element={<Dashboard />} />
+        <Route path="stations" element={<Stations />} />
         <Route path="incidents" element={<Placeholder title="Incidents" />} />
         <Route path="incidents/:id" element={<Placeholder title="Incident" />} />
         <Route path="alerts" element={<Placeholder title="Alerts" />} />
