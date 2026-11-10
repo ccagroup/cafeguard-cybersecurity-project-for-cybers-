@@ -13,6 +13,7 @@ import { sessionsRouter } from "./routes/sessions";
 import { alertsRouter } from "./routes/alerts";
 import { incidentsRouter } from "./routes/incidents";
 import { auditRouter } from "./routes/audit";
+import { dashboardRouter } from "./routes/dashboard";
 
 export function createApp() {
   const app = express();
@@ -38,6 +39,7 @@ export function createApp() {
   app.use("/api/alerts", alertsRouter);
   app.use("/api/incidents", incidentsRouter);
   app.use("/api/audit", auditRouter);
+  app.use("/api/dashboard", dashboardRouter);
 
   app.use("/api", (_req, res) => {
     res.status(404).json({ error: "Not found" });

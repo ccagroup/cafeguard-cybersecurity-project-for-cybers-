@@ -15,7 +15,7 @@ type AlertRow = {
   acknowledgedBy: { name: string } | null;
 };
 
-function toDto(a: AlertRow) {
+export function toDto(a: AlertRow) {
   return {
     id: a.id,
     severity: a.severity,
@@ -27,7 +27,7 @@ function toDto(a: AlertRow) {
   };
 }
 
-const include = {
+export const include = {
   station: { select: { id: true, label: true } },
   acknowledgedBy: { select: { name: true } },
 };
