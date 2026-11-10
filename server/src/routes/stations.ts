@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../db";
 import { writeAudit } from "../audit";
+import { raiseAlert } from "../alerts";
 import { isUniqueViolation } from "../prismaErrors";
 
 export const stationsRouter = Router();
@@ -87,4 +88,59 @@ stationsRouter.post("/:id/sessions", async (req, res) => {
     }
     throw e;
   }
+});
+
+// Manual trigger 1: activity reported on a station.
+stationsRouter.post("/:id/report-activity", async (req, res) => {
+  const station = await prisma.station.findUnique({ where: { id: req.params.id } });
+  if (!station) return res.status(404).json({ error: "Station not found" });
+
+  const alert = await prisma.$transaction(async (tx) => {
+    const open = await tx.customerSession.findFirst({
+      where: { stationId: station.id, endedAt: null },
+    });
+    if (open) return null;
+    return raiseAlert(tx, {
+      severity: "WARNING",
+      message: `Activity detected on ${station.label} with no open session`,
+      stationId: station.id,
+      actorId: req.user!.id,
+      ip: req.ip ?? null,
+    });
+  });
+
+  if (!alert) {
+    return res.json({
+      alert: null,
+      message: `${station.label} has an open session, so no alert was raised.`,
+    });
+  }
+  res.status(201).json({ alert });
+});
+
+// Manual trigger 2: an already-ended session is reopened.
+stationsRouter.post("/:id/reopen-last", async (req, res) => {
+  const station = await prisma.station.findUnique({ where: { id: req.params.id } });
+  if (!station) return res.status(404).json({ error: "Station not found" });
+
+  const last = await prisma.customerSession.findFirst({
+    where: { stationId: station.id, endedAt: { not: null } },
+    orderBy: { endedAt: "desc" },
+  });
+  if (!last) {
+    return res
+      .status(409)
+      .json({ error: `${station.label} has no ended session to reopen.` });
+  }
+
+  const alert = await prisma.$transaction((tx) =>
+    raiseAlert(tx, {
+      severity: "DANGER",
+      message: `Ended session for ${last.customerName} on ${station.label} was reopened`,
+      stationId: station.id,
+      actorId: req.user!.id,
+      ip: req.ip ?? null,
+    })
+  );
+  res.status(201).json({ alert });
 });
