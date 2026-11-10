@@ -11,6 +11,8 @@ import { attendantsRouter } from "./routes/attendants";
 import { stationsRouter } from "./routes/stations";
 import { sessionsRouter } from "./routes/sessions";
 import { alertsRouter } from "./routes/alerts";
+import { incidentsRouter } from "./routes/incidents";
+import { auditRouter } from "./routes/audit";
 
 export function createApp() {
   const app = express();
@@ -34,6 +36,8 @@ export function createApp() {
   app.use("/api/stations", stationsRouter);
   app.use("/api/sessions", sessionsRouter);
   app.use("/api/alerts", alertsRouter);
+  app.use("/api/incidents", incidentsRouter);
+  app.use("/api/audit", auditRouter);
 
   app.use("/api", (_req, res) => {
     res.status(404).json({ error: "Not found" });
