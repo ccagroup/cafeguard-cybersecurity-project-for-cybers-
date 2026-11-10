@@ -65,13 +65,26 @@ authRouter.post("/login", loginLimiter, async (req, res) => {
 
   const user = await prisma.user.findUnique({ where: { email } });
   const locked = !!user?.lockedUntil && user.lockedUntil > now;
+  const removed = !!user?.deactivatedAt;
 
   // Always run a password check so timing doesn't reveal whether the email exists.
   const hash = user ? user.passwordHash : await getDummyHash();
   const passwordOk = await argon2.verify(hash, password);
 
-  if (!user || locked || !passwordOk) {
-    if (user && !locked) await recordFailure(user.id, ip);
+  // A removed account using its correct password is worth recording.
+  if (user && removed && passwordOk) {
+    await prisma.$transaction((tx) =>
+      writeAudit(tx, {
+        actorId: user.id,
+        action: "sign-in blocked",
+        detail: "A removed account tried to sign in",
+        ip,
+      })
+    );
+  }
+
+  if (!user || locked || removed || !passwordOk) {
+    if (user && !locked && !removed) await recordFailure(user.id, ip);
     return res.status(401).json(BAD_LOGIN);
   }
 

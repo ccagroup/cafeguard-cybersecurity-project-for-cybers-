@@ -61,4 +61,10 @@ export type AuditEntry = {
   ip: string | null;
 };
 
-export type AttendantDto = { id: string; name: string; email: string; createdAt: string };
+export type AttendantDto = {
+  id: string;
+  name: string;
+  email: string;
+  createdAt: string;
+  deactivatedAt: string | null;
+};

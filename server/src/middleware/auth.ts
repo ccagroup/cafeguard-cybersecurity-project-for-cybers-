@@ -45,7 +45,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     where: { tokenHash: hashToken(found.token) },
     include: { user: true },
   });
-  if (!session || session.expiresAt <= new Date()) {
+  if (!session || session.expiresAt <= new Date() || session.user.deactivatedAt) {
     return res.status(401).json({ error: "Sign in required" });
   }
 

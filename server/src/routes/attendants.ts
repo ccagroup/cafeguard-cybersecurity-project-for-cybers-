@@ -19,11 +19,15 @@ const createSchema = z.object({
 });
 
 attendantsRouter.get("/", async (_req, res) => {
-  const attendants = await prisma.user.findMany({
+  const rows = await prisma.user.findMany({
     where: { role: "ATTENDANT" },
     orderBy: { createdAt: "desc" },
-    select: { id: true, name: true, email: true, createdAt: true },
+    select: { id: true, name: true, email: true, createdAt: true, deactivatedAt: true },
   });
+  // Active attendants first, removed ones after.
+  const attendants = [...rows].sort(
+    (a, b) => Number(!!a.deactivatedAt) - Number(!!b.deactivatedAt)
+  );
   res.json({ attendants });
 });
 
@@ -41,7 +45,7 @@ attendantsRouter.post("/", async (req, res) => {
     const attendant = await prisma.$transaction(async (tx) => {
       const u = await tx.user.create({
         data: { name, email, passwordHash, role: "ATTENDANT" },
-        select: { id: true, name: true, email: true, createdAt: true },
+        select: { id: true, name: true, email: true, createdAt: true, deactivatedAt: true },
       });
       await writeAudit(tx, {
         actorId: req.user!.id,
@@ -55,10 +59,61 @@ attendantsRouter.post("/", async (req, res) => {
   } catch (e) {
     if (isUniqueViolation(e)) {
       return res.status(409).json({
-        error: "An account with this email already exists",
+        error:
+          "An account with this email already exists. If this person was removed, restore their access from the list.",
         fields: { email: ["Already in use"] },
       });
     }
     throw e;
   }
+});
+
+attendantsRouter.post("/:id/remove", async (req, res) => {
+  const id = String(req.params.id);
+
+  const result = await prisma.$transaction(async (tx) => {
+    const user = await tx.user.findFirst({ where: { id, role: "ATTENDANT" } });
+    if (!user) return "missing" as const;
+    if (user.deactivatedAt) return "already" as const;
+
+    await tx.user.update({ where: { id }, data: { deactivatedAt: new Date() } });
+    await tx.authSession.deleteMany({ where: { userId: id } });
+    await writeAudit(tx, {
+      actorId: req.user!.id,
+      action: "attendant removed",
+      target: user.email,
+      ip: req.ip ?? null,
+    });
+    return "done" as const;
+  });
+
+  if (result === "missing") return res.status(404).json({ error: "Attendant not found" });
+  if (result === "already") return res.status(409).json({ error: "This attendant was already removed" });
+  res.json({ ok: true });
+});
+
+attendantsRouter.post("/:id/restore", async (req, res) => {
+  const id = String(req.params.id);
+
+  const result = await prisma.$transaction(async (tx) => {
+    const user = await tx.user.findFirst({ where: { id, role: "ATTENDANT" } });
+    if (!user) return "missing" as const;
+    if (!user.deactivatedAt) return "already" as const;
+
+    await tx.user.update({
+      where: { id },
+      data: { deactivatedAt: null, failedAttempts: 0, lockedUntil: null },
+    });
+    await writeAudit(tx, {
+      actorId: req.user!.id,
+      action: "attendant restored",
+      target: user.email,
+      ip: req.ip ?? null,
+    });
+    return "done" as const;
+  });
+
+  if (result === "missing") return res.status(404).json({ error: "Attendant not found" });
+  if (result === "already") return res.status(409).json({ error: "This attendant is already active" });
+  res.json({ ok: true });
 });

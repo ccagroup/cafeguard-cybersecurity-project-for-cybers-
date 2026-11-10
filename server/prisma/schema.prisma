@@ -45,6 +45,8 @@ model User {
   role           Role
   failedAttempts Int       @default(0)
   lockedUntil    DateTime?
+  deactivatedAt  DateTime?
+  
   createdAt      DateTime  @default(now())
 
   authSessions       AuthSession[]

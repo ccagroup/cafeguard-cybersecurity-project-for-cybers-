@@ -353,3 +353,6 @@
   .facts dd { margin-bottom: var(--space-3); }
   .inline-form .field { min-width: 0; width: 100%; }
 }
+
+.row-muted th,
+.row-muted td:not(:last-child) { color: var(--text-muted); }
