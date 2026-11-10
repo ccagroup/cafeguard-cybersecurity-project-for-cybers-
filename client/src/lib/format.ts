@@ -38,3 +38,13 @@ export function timeAgo(iso: string): string {
   const days = Math.round(hours / 24);
   return `${days} d ago`;
 }
+
+const fullFmt = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "medium" });
+export function formatFull(iso: string): string {
+  return fullFmt.format(new Date(iso));
+}
+
+const clockFmt = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" });
+export function formatClock(iso: string): string {
+  return clockFmt.format(new Date(iso));
+}
