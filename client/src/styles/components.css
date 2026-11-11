@@ -356,3 +356,5 @@
 
 .row-muted th,
 .row-muted td:not(:last-child) { color: var(--text-muted); }
+
+.page-loading { min-height: 40vh; }
